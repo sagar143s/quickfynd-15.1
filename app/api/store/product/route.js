@@ -59,6 +59,7 @@ export async function POST(request) {
         const category = formData.get("category");
         const sku = formData.get("sku") || null;
         const images = formData.getAll("images");
+        const stockQuantity = formData.get("stockQuantity") ? Number(formData.get("stockQuantity")) : 0;
         // New: variants support
         const hasVariants = String(formData.get("hasVariants") || "false").toLowerCase() === "true";
         const variantsRaw = formData.get("variants"); // expected JSON string if hasVariants
@@ -164,6 +165,7 @@ export async function POST(request) {
             attributes,
             inStock,
             fastDelivery,
+            stockQuantity,
             storeId,
         });
 
@@ -220,6 +222,7 @@ export async function PUT(request) {
         const category = formData.get("category");
         const sku = formData.get("sku");
         const images = formData.getAll("images");
+        const stockQuantity = formData.get("stockQuantity") ? Number(formData.get("stockQuantity")) : undefined;
         // Variants support
         const hasVariants = String(formData.get("hasVariants") || "").toLowerCase() === "true";
         const variantsRaw = formData.get("variants");
@@ -298,6 +301,11 @@ export async function PUT(request) {
             inStock,
             fastDelivery,
         };
+
+        // Add stockQuantity if provided
+        if (stockQuantity !== undefined) {
+            updateData.stockQuantity = stockQuantity;
+        }
         if (slug && slug !== product.slug) {
             const existing = await Product.findOne({ slug }).lean();
             if (existing && existing._id.toString() !== productId) {
