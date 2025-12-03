@@ -181,7 +181,7 @@ const Navbar = () => {
   };
   
 
-  // Seller approval check (fetch from backend)
+  // Seller approval check (fetch from backend) - Only check, don't show toast
   const [isSeller, setIsSeller] = useState(false);
   const [isSellerLoading, setIsSellerLoading] = useState(false);
   const lastCheckedUidRef = useRef(null);
@@ -206,19 +206,6 @@ const Navbar = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setIsSeller(!!data.isSeller);
-        if (!data.isSeller && data.reason) {
-          const msg = data.reason === 'missing-auth-header'
-            ? 'Please sign in to check seller access.'
-            : data.reason === 'invalid-token'
-            ? 'Session expired. Please sign in again.'
-            : data.reason === 'server-error'
-            ? 'Could not verify seller access. Try again later.'
-            : 'Seller access not approved yet.';
-          toast.dismiss('seller-access');
-          toast((t) => (
-            <span> {msg} </span>
-          ), { id: 'seller-access', duration: 3000 });
-        }
         setIsSellerLoading(false);
       } catch (err) {
         try {
@@ -227,19 +214,6 @@ const Navbar = () => {
             headers: { Authorization: `Bearer ${token2}` },
           });
           setIsSeller(!!data.isSeller);
-          if (!data.isSeller && data.reason) {
-            const msg = data.reason === 'missing-auth-header'
-              ? 'Please sign in to check seller access.'
-              : data.reason === 'invalid-token'
-              ? 'Session expired. Please sign in again.'
-              : data.reason === 'server-error'
-              ? 'Could not verify seller access. Try again later.'
-              : 'Seller access not approved yet.';
-            toast.dismiss('seller-access');
-            toast((t) => (
-              <span> {msg} </span>
-            ), { id: 'seller-access', duration: 3000 });
-          }
           setIsSellerLoading(false);
         } catch {
           setIsSeller(false);
@@ -400,18 +374,13 @@ const Navbar = () => {
                 )}
                 <span className="font-medium text-gray-700 text-sm">Hi, {firebaseUser.displayName || firebaseUser.email}</span>
                 {/* Dashboard button for seller */}
-                {!isSellerLoading && isSeller && (
+                {isSeller && (
                   <button
                     className="ml-2 px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-full transition"
                     onClick={() => router.push('/store')}
                   >
                     Dashboard
                   </button>
-                )}
-                {isSellerLoading && (
-                  <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
-                    Checking…
-                  </span>
                 )}
                 {/* User Dropdown */}
                 {userDropdownOpen && (
@@ -692,7 +661,7 @@ const Navbar = () => {
                   <PackageIcon size={18} className="text-gray-600" />
                   <span>My Orders</span>
                 </Link>
-                {!isSellerLoading && isSeller && (
+                {isSeller && (
                   <Link 
                     href="/store" 
                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg transition text-gray-700 font-medium"
@@ -701,12 +670,6 @@ const Navbar = () => {
                     <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">Seller</span>
                     <span>Dashboard</span>
                   </Link>
-                )}
-                {isSellerLoading && (
-                  <div className="flex items-center gap-3 px-4 py-3 text-gray-500 text-sm">
-                    <span className="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">Seller</span>
-                    <span>Checking access…</span>
-                  </div>
                 )}
               </div>
 
