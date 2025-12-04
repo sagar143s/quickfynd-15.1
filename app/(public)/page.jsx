@@ -91,23 +91,21 @@ export default function Home() {
     const showGrid = gridSectionsWithProducts.some(s => s.title && s.products && s.products.length > 0);
 
     return (
-                <>
-                        <div>
-                            <HomeCategories/>
-                            <Hero />
-                            <LatestProducts />
-                            <BannerSlider/>
-                            <Section3/>
-                            
-                            {/* Category Sections */}
-                            {section4Data.length > 0 && (
-                                <Section4 sections={section4Data} />
-                            )}
-                            
-                            <OriginalBrands/>
-                            <QuickFyndCategoryDirectory/>
-                            <KeywordPills />
-                        </div>
-                </>
+        <>
+            <HomeCategories/>
+            <Hero />
+            <LatestProducts />
+            <BannerSlider/>
+            <Section3/>
+            
+            {/* Category Sections */}
+            {section4Data.length > 0 && (
+                <Section4 sections={section4Data} />
+            )}
+            
+            <OriginalBrands/>
+            <QuickFyndCategoryDirectory/>
+            <KeywordPills />
+        </>
     );
 }

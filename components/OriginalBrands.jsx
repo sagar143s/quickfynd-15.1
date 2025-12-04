@@ -63,10 +63,10 @@ export default function SmoothBrands({ data = brands }) {
   };
 
   return (
-    <section className="py-6 w-full flex justify-center">
+    <section className="py-0 sm:py-6 w-full flex justify-center">
       <div className="w-full max-w-[1300px]">
         <div className="flex items-center justify-between mb-4 px-2">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
+          <h2 className="text-lg sm:text-2xl font-semibold flex items-center gap-2">
             Most Popular Categories
             <span className="inline-block text-blue-600">
               <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
@@ -74,9 +74,9 @@ export default function SmoothBrands({ data = brands }) {
               </svg>
             </span>
           </h2>
-          <button className="text-purple-700 font-medium flex items-center gap-1 hover:underline"
+          <button className="text-purple-700 font-medium text-sm sm:text-base flex items-center gap-1 hover:underline"
             onClick={() => router.push("/brands")}>
-            VIEW ALL <span className="text-lg">&rarr;</span>
+            VIEW ALL <span className="text-base sm:text-lg">&rarr;</span>
           </button>
         </div>
 
@@ -95,7 +95,7 @@ export default function SmoothBrands({ data = brands }) {
           {/* Slider */}
           <div
             ref={sliderRef}
-            className="flex gap-4 pb-2 px-2 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar select-none"
+            className="flex gap-4 px-0 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar select-none"
             style={{ WebkitOverflowScrolling: 'touch', cursor: 'grab' }}
             onMouseDown={(e) => { e.currentTarget.style.cursor = 'grabbing'; }}
             onMouseUp={(e) => { e.currentTarget.style.cursor = 'grab'; handleScrollEnd(); }}
@@ -104,7 +104,7 @@ export default function SmoothBrands({ data = brands }) {
             {data.map((brand, idx) => (
               <div
                 key={brand.name}
-                className="brand-card snap-start cursor-pointer flex items-center justify-center min-h-[180px] h-[220px] min-w-[38vw] sm:min-w-[28.5%] lg:min-w-[15.5%] max-w-[220px] bg-white rounded-xl shadow-sm lg:h-[270px] lg:max-w-[260px]"
+                className="brand-card snap-start cursor-pointer flex items-center justify-center min-h-[140px] sm:min-h-[180px] h-[140px] sm:h-[220px] min-w-[calc(100%/4)] sm:min-w-[28.5%] lg:min-w-[15.5%] max-w-[220px] bg-white rounded-xl shadow-sm lg:h-[270px] lg:max-w-[260px]"
                 onDoubleClick={() => router.push(brand.path)}
                 style={{ paddingTop: 0, paddingBottom: 0 }}
               >

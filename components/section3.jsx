@@ -38,19 +38,19 @@ export default function TopDeals() {
   }, []);
 
   return (
-    <div className="w-full hidden xl:flex justify-center px-4 mt-5">
+    <div className="w-full flex justify-center px-4 mt-5">
       <div className="w-full max-w-[1300px] flex gap-6">
 
         {/* LEFT GRID PRODUCTS */}
         <div className="flex-1">
-          <h2 className="text-[28px] font-semibold mb-5">Top Deals</h2>
+          <h2 className="text-lg sm:text-[28px] font-semibold mb-3 sm:mb-5">Top Deals</h2>
 
           {loading ? (
             <p className="text-gray-500 py-5 text-lg text-center">Loading...</p>
           ) : products.length === 0 ? (
             <p className="text-gray-500 py-5 text-center">No Deals Found</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-6">
 
               {products?.map((item, i) => {
                 const img =
@@ -67,13 +67,13 @@ export default function TopDeals() {
                     <img
                       src={img}
                       alt={item.name}
-                      className="w-[150px] h-[140px] mx-auto object-contain hover:scale-105 transition-all duration-200"
+                      className="w-[80px] h-[70px] sm:w-[150px] sm:h-[140px] mx-auto object-contain hover:scale-105 transition-all duration-200"
                       onError={e => { e.currentTarget.src = "https://ik.imagekit.io/jrstupuke/placeholder.png"; }}
                     />
-                    <p className="text-[15px] font-medium mt-2 truncate">
+                    <p className="text-[10px] sm:text-[15px] font-medium mt-1 sm:mt-2 truncate">
                       {item.name}
                     </p>
-                    <p className="font-bold text-[16px] mt-1">
+                    <p className="font-bold text-[9px] sm:text-[16px] mt-0.5 sm:mt-1">
                       From ₹{item.price}
                     </p>
                   </a>

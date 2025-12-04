@@ -8,6 +8,7 @@ import TopBarNotification from "@/components/TopBarNotification";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts } from "@/lib/features/product/productSlice";
+import { usePathname } from "next/navigation";
 
 import { fetchCart, uploadCart } from "@/lib/features/cart/cartSlice";
 import { fetchAddress } from "@/lib/features/address/addressSlice";
@@ -18,6 +19,8 @@ import { fetchUserRatings } from "@/lib/features/rating/ratingSlice";
 function PublicLayoutAuthed({ children }) {
     const dispatch = useDispatch();
     const { cartItems } = useSelector((state) => state.cart);
+    const pathname = usePathname();
+    const isHomePage = pathname === '/';
 
     useEffect(() => { 
         // Defer product fetch to allow critical content to load first
@@ -33,8 +36,8 @@ function PublicLayoutAuthed({ children }) {
             <TopBarNotification />
             {/* <Banner />/ */}
             <Navbar />
-            <main className="flex-1 pb-20 lg:pb-0">{children}</main>
-            <MobileBottomNav />
+            <main className={`flex-1 ${isHomePage ? 'pb-8' : 'pb-20'} lg:pb-0`}>{children}</main>
+            {!isHomePage && <MobileBottomNav />}
             <Footer />
         </div>
     );
@@ -42,6 +45,8 @@ function PublicLayoutAuthed({ children }) {
 
 function PublicLayoutGuest({ children }) {
     const dispatch = useDispatch();
+    const pathname = usePathname();
+    const isHomePage = pathname === '/';
     useEffect(() => { 
         // Defer product fetch
         const timer = setTimeout(() => {
@@ -55,8 +60,8 @@ function PublicLayoutGuest({ children }) {
             {/* <Banner /> */}
             <Navbar />
          
-            <main className="flex-1 pb-20 lg:pb-0">{children}</main>
-            <MobileBottomNav />
+            <main className={`flex-1 ${isHomePage ? 'pb-8' : 'pb-20'} lg:pb-0`}>{children}</main>
+            {!isHomePage && <MobileBottomNav />}
             <Footer />
         </div>
     );
