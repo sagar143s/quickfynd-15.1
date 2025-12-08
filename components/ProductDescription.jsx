@@ -187,13 +187,13 @@ const ProductDescription = ({ product }) => {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {reviews.map((item) => (
-                                <div key={item.id} className="pb-6 border-b border-gray-100 last:border-0">
+                            {reviews.map((item, idx) => (
+                                <div key={item.id || item._id || idx} className="pb-6 border-b border-gray-100 last:border-0">
                                     <div className="flex gap-4">
                                         {/* User Avatar */}
                                         <div className="flex-shrink-0">
                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 via-red-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                                                {item.user.name?.[0]?.toUpperCase() || 'U'}
+                                                {(item.user && item.user.name && item.user.name[0]) ? item.user.name[0].toUpperCase() : 'U'}
                                             </div>
                                         </div>
                                         
@@ -202,7 +202,7 @@ const ProductDescription = ({ product }) => {
                                             {/* User Info & Rating */}
                                             <div className="flex items-start justify-between mb-2">
                                                 <div>
-                                                    <p className="font-semibold text-gray-900">{item.user.name}</p>
+                                                    <p className="font-semibold text-gray-900">{item.user && item.user.name ? item.user.name : 'Unknown User'}</p>
                                                     <p className="text-xs text-gray-400 mt-0.5">
                                                         {new Date(item.createdAt).toLocaleDateString('en-US', {
                                                             day: 'numeric',

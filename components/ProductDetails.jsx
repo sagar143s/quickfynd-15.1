@@ -12,7 +12,7 @@ import { addToCart, uploadCart } from "@/lib/features/cart/cartSlice";
 import MobileProductActions from "./MobileProductActions";
 import { useAuth } from '@/lib/useAuth';
 
-const ProductDetails = ({ product }) => {
+const ProductDetails = ({ product, reviews = [] }) => {
   // Assume product loading state from redux if available
   const loading = useSelector(state => state.product?.status === 'loading');
   const currency = '₹';
@@ -31,8 +31,9 @@ const ProductDetails = ({ product }) => {
   const cartCount = useSelector((state) => state.cart.total);
   const cartItems = useSelector((state) => state.cart.cartItems);
 
-  const averageRating = product.rating?.length
-    ? product.rating.reduce((acc, item) => acc + item.rating, 0) / product.rating.length
+  // Use reviews prop if available for live data
+  const averageRating = (Array.isArray(reviews) && reviews.length > 0)
+    ? reviews.reduce((acc, item) => acc + (item.rating || 0), 0) / reviews.length
     : 0;
 
   // Variants support
@@ -456,7 +457,7 @@ const ProductDetails = ({ product }) => {
 
             {/* Rating & Reviews */}
             <div className="flex items-center gap-3">
-              {product.ratingCount > 0 ? (
+              {(reviews && reviews.length > 0) ? (
                 <>
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
@@ -469,7 +470,7 @@ const ProductDetails = ({ product }) => {
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600">{product.ratingCount} Reviews</span>
+                  <span className="text-sm text-gray-600">{reviews.length} Reviews</span>
                   <a href="#reviews" className="text-sm text-blue-600 hover:underline">
                     (See Reviews)
                   </a>

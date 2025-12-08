@@ -131,16 +131,18 @@ export default function StoreReviews() {
                             {product.rating.map((rev) => (
                                 <div key={rev._id || rev.id} className="border-t pt-3">
                                     <div className="flex items-start gap-3">
-                                        <Image
-                                            src={rev.user.image}
-                                            alt={rev.user.name}
-                                            width={40}
-                                            height={40}
-                                            className="rounded-full"
-                                        />
+                                        {rev.user && (
+                                            <Image
+                                                src={rev.user.image && rev.user.image.trim() !== '' ? rev.user.image : '/placeholder.png'}
+                                                alt={rev.user.name ? rev.user.name : 'Customer avatar'}
+                                                width={40}
+                                                height={40}
+                                                className="rounded-full"
+                                            />
+                                        )}
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-medium">{rev.user.name}</span>
+                                                <span className="font-medium">{rev.user ? rev.user.name : "Unknown User"}</span>
                                                 <div className="flex">
                                                     {Array(5).fill('').map((_, i) => (
                                                         <StarIcon

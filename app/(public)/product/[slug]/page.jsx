@@ -1,6 +1,7 @@
 "use client"
 import ProductDescription from "@/components/ProductDescription";
 import ProductDetails from "@/components/ProductDetails";
+// import axios from "axios";
 import ProductCard from "@/components/ProductCard";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,6 +15,8 @@ export default function ProductBySlug() {
     const [product, setProduct] = useState();
     const [loading, setLoading] = useState(true);
     const [relatedProducts, setRelatedProducts] = useState([]);
+    const [reviews, setReviews] = useState([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
     const products = useSelector(state => state.product.list);
 
     const fetchProduct = async () => {
@@ -41,10 +44,28 @@ export default function ProductBySlug() {
         setLoading(false);
     }
 
+    const fetchReviews = async (productId) => {
+        setLoadingReviews(true);
+        try {
+            const { data } = await axios.get(`/api/review?productId=${productId}`);
+            setReviews(data.reviews || []);
+        } catch (error) {
+            setReviews([]);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
+
     useEffect(() => {
         fetchProduct();
         scrollTo(0, 0);
     }, [slug, products]);
+
+    useEffect(() => {
+        if (product && product.id) {
+            fetchReviews(product.id);
+        }
+    }, [product]);
 
     // Track browse history for signed-in users
     useEffect(() => {
@@ -52,7 +73,6 @@ export default function ProductBySlug() {
 
         const trackView = async (user) => {
             if (!user) return;
-            
             try {
                 const token = await user.getIdToken();
                 await axios.post('/api/browse-history', 
@@ -80,8 +100,8 @@ export default function ProductBySlug() {
                     <div className="text-center py-16 text-gray-400">Loading product…</div>
                 ) : product ? (
                     <>
-                        <ProductDetails product={product} />
-                        <ProductDescription product={product} />
+                        <ProductDetails product={product} reviews={reviews} loadingReviews={loadingReviews} />
+                        <ProductDescription product={product} reviews={reviews} loadingReviews={loadingReviews} onReviewAdded={() => fetchReviews(product.id)} />
                         {/* Related Products */}
                         {relatedProducts.length > 0 && (
                             <div className="px-4 mt-12 mb-16">
