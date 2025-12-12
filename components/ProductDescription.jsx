@@ -201,16 +201,16 @@ const ProductDescription = ({ product }) => {
                                         <div className="flex-1">
                                             {/* User Info & Rating */}
                                             <div className="flex items-start justify-between mb-2">
-                                                {/* <div>
+                                            <div>
                                                     <p className="font-semibold text-gray-900">{item.user && item.user.name ? item.user.name : 'Unknown User'}</p>
-                                                    <p className="text-xs text-gray-400 mt-0.5">
+                                                    {/* <p className="text-xs text-gray-400 mt-0.5">
                                                         {new Date(item.createdAt).toLocaleDateString('en-US', {
                                                             day: 'numeric',
                                                             month: 'long',
                                                             year: 'numeric'
                                                         })}
-                                                    </p>
-                                                </div> */}
+                                                    </p> */}
+                                                </div> 
                                                 <div className="flex items-center gap-0.5">
                                                     {Array(5).fill('').map((_, index) => (
                                                         <StarIcon 
