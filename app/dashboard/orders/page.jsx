@@ -102,14 +102,51 @@ export default function DashboardOrdersPage() {
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Status</p>
-                            <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                              order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
-                              order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-700' :
-                              order.status === 'PROCESSING' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-slate-100 text-slate-700'
-                            }`}>
-                              {order.status || 'ORDER_PLACED'}
-                            </span>
+                            <select
+                              className={`inline-block px-3 py-1 text-xs font-medium rounded-full border focus:outline-none ${
+                                order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
+                                order.status === 'OUT_FOR_DELIVERY' ? 'bg-teal-100 text-teal-700' :
+                                order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-700' :
+                                order.status === 'WAREHOUSE_RECEIVED' ? 'bg-indigo-100 text-indigo-700' :
+                                order.status === 'PICKED_UP' ? 'bg-purple-100 text-purple-700' :
+                                order.status === 'PICKUP_REQUESTED' ? 'bg-yellow-100 text-yellow-700' :
+                                order.status === 'WAITING_FOR_PICKUP' ? 'bg-yellow-50 text-yellow-700' :
+                                order.status === 'CONFIRMED' ? 'bg-orange-100 text-orange-700' :
+                                order.status === 'PROCESSING' ? 'bg-yellow-100 text-yellow-700' :
+                                order.status === 'RETURN_REQUESTED' ? 'bg-pink-100 text-pink-700' :
+                                order.status === 'RETURNED' ? 'bg-pink-200 text-pink-800' :
+                                order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                'bg-slate-100 text-slate-700'
+                              }`}
+                              value={order.status || 'ORDER_PLACED'}
+                              onChange={async (e) => {
+                                const newStatus = e.target.value;
+                                try {
+                                  const token = await auth.currentUser.getIdToken(true);
+                                  await axios.post('/api/orders/update-status', { orderId, status: newStatus }, {
+                                    headers: { Authorization: `Bearer ${token}` },
+                                  });
+                                  toast.success('Order status updated!');
+                                  setOrders((prev) => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+                                } catch (err) {
+                                  toast.error(err?.response?.data?.error || 'Failed to update status');
+                                }
+                              }}
+                            >
+                              <option value="ORDER_PLACED">Order Placed</option>
+                              <option value="CONFIRMED">Confirmed</option>
+                              <option value="PROCESSING">Processing</option>
+                              <option value="PICKUP_REQUESTED">Pickup Requested</option>
+                              <option value="WAITING_FOR_PICKUP">Waiting for Pickup</option>
+                              <option value="PICKED_UP">Picked Up</option>
+                              <option value="WAREHOUSE_RECEIVED">Warehouse Received</option>
+                              <option value="SHIPPED">Shipped</option>
+                              <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                              <option value="DELIVERED">Delivered</option>
+                              <option value="RETURN_REQUESTED">Return Requested</option>
+                              <option value="RETURNED">Returned</option>
+                              <option value="CANCELLED">Cancelled</option>
+                            </select>
                           </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
