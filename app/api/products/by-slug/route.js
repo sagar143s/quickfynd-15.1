@@ -9,7 +9,10 @@ export async function GET(request) {
     if (!slug) {
         return NextResponse.json({ error: "Missing slug" }, { status: 400 });
     }
-    const product = await Product.findOne({ slug }).lean();
+    // Only select needed fields for performance
+    const product = await Product.findOne({ slug })
+        .select('name slug description shortDescription mrp price images category sku inStock stockQuantity hasVariants variants attributes hasBulkPricing bulkPricing fastDelivery allowReturn allowReplacement storeId createdAt updatedAt')
+        .lean();
     if (!product) {
         return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }

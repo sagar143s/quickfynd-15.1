@@ -1,14 +1,28 @@
 
 
+
 import dbConnect from "@/lib/mongodb";
 import HomeSection from "@/models/HomeSection";
 import { NextResponse } from "next/server";
 
+// Simple in-memory cache
+let _cache = { sections: null, lastFetch: 0 };
+const CACHE_TTL = 60 * 1000; // 1 minute
+
 // GET - Fetch all home sections (public)
 export async function GET(request) {
     try {
+        const now = Date.now();
+        if (_cache.sections && now - _cache.lastFetch < CACHE_TTL) {
+            return NextResponse.json({ sections: _cache.sections });
+        }
         await dbConnect();
-        const sections = await HomeSection.find().sort({ sortOrder: 1 });
+        // Only select needed fields for homepage
+        const sections = await HomeSection.find({}, {
+            section: 1, category: 1, tag: 1, productIds: 1, title: 1, subtitle: 1, slides: 1, slidesData: 1, bannerCtaText: 1, bannerCtaLink: 1, layout: 1, isActive: 1, sortOrder: 1
+        }).sort({ sortOrder: 1 }).lean();
+        _cache.sections = sections;
+        _cache.lastFetch = now;
         return NextResponse.json({ sections });
     } catch (error) {
         console.error('Error fetching home sections:', error);

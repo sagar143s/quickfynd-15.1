@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const RatingSchema = new mongoose.Schema({
   productId: { type: String, required: true },
-  userId: { type: String, required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   orderId: String,
   rating: { type: Number, required: true },
   comment: String,

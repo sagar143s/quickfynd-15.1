@@ -121,14 +121,16 @@ export async function GET(request) {
         }
 
         // Only show approved reviews to customers
+
         const reviews = await Rating.find({ 
             productId,
             approved: true 
         })
-        // .populate({
-        //     path: 'userId',
-        //     select: '_id name image email'
-        // })
+        .populate({
+            path: 'userId',
+            select: '_id name image email',
+            model: 'User'
+        })
         .sort({ createdAt: -1 })
         .lean();
 

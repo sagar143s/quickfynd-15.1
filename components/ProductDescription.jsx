@@ -11,8 +11,7 @@ import { useSelector } from "react-redux"
 // Updated design - Noon.com style v2
 const ProductDescription = ({ product }) => {
 
-    const [reviews, setReviews] = useState([])
-    const [loadingReviews, setLoadingReviews] = useState(false)
+    // Use reviews and loadingReviews from props only
     const [suggestedProducts, setSuggestedProducts] = useState([])
     const allProducts = useSelector((state) => state.product.list || [])
 
@@ -29,7 +28,6 @@ const ProductDescription = ({ product }) => {
         : 0
 
     useEffect(() => {
-        fetchReviews()
         fetchSuggestedProducts()
     }, [product._id, allProducts])
 
@@ -56,21 +54,7 @@ const ProductDescription = ({ product }) => {
         setSuggestedProducts(shuffled.slice(0, 8))
     }
 
-    const fetchReviews = async () => {
-        try {
-            setLoadingReviews(true)
-            const { data } = await axios.get(`/api/review?productId=${product._id}`)
-            setReviews(data.reviews)
-        } catch (error) {
-            console.error('Failed to fetch reviews:', error)
-        } finally {
-            setLoadingReviews(false)
-        }
-    }
-
-    const handleReviewAdded = (newReview) => {
-        fetchReviews()
-    }
+    // Remove fetchReviews and handleReviewAdded, use parent handler
 
     return (
         <div className="my-8">
@@ -173,7 +157,7 @@ const ProductDescription = ({ product }) => {
                         <p className="text-sm text-gray-600 mb-4">
                             You can add your review by clicking the star rating below:
                         </p>
-                        <ReviewForm productId={product._id} onReviewAdded={handleReviewAdded} />
+                        <ReviewForm productId={product._id} onReviewAdded={onReviewAdded} />
                     </div>
 
                     {/* Reviews List */}
@@ -193,7 +177,7 @@ const ProductDescription = ({ product }) => {
                                         {/* User Avatar */}
                                         <div className="flex-shrink-0">
                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 via-red-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                                                {(item.user && item.user.name && item.user.name[0]) ? item.user.name[0].toUpperCase() : 'U'}
+                                                {(item.userId && item.userId.name && item.userId.name[0]) ? item.userId.name[0].toUpperCase() : 'U'}
                                             </div>
                                         </div>
                                         
@@ -202,7 +186,7 @@ const ProductDescription = ({ product }) => {
                                             {/* User Info & Rating */}
                                             <div className="flex items-start justify-between mb-2">
                                             <div>
-                                                    <p className="font-semibold text-gray-900">{item.user && item.user.name ? item.user.name : 'Unknown User'}</p>
+                                                    <p className="font-semibold text-gray-900">{item.userId && item.userId.name ? item.userId.name : 'Unknown User'}</p>
                                                     {/* <p className="text-xs text-gray-400 mt-0.5">
                                                         {new Date(item.createdAt).toLocaleDateString('en-US', {
                                                             day: 'numeric',

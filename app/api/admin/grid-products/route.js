@@ -1,7 +1,12 @@
 
+
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import GridSection from '@/models/GridSection';
+
+// Simple in-memory cache
+let _cache = { sections: null, lastFetch: 0 };
+const CACHE_TTL = 60 * 1000; // 1 minute
 
 export async function POST(request) {
   try {
@@ -40,10 +45,12 @@ export async function POST(request) {
 }
 
 export async function GET() {
+  const now = Date.now();
+  if (_cache.sections && now - _cache.lastFetch < CACHE_TTL) {
+    return NextResponse.json({ sections: _cache.sections });
+  }
   await dbConnect();
-  console.log('[GridSection API] GET called');
-  const dbSections = await GridSection.find({}).sort({ index: 1 }).lean();
-  console.log('[GridSection API] Sections from DB:', JSON.stringify(dbSections));
+  const dbSections = await GridSection.find({}, { title: 1, path: 1, productIds: 1, index: 1 }).sort({ index: 1 }).lean();
   // Always return 3 slots for UI
   const sections = [0, 1, 2].map(i => {
     const s = dbSections.find(x => x.index === i);
@@ -51,6 +58,7 @@ export async function GET() {
       ? { title: s.title, path: s.path, productIds: s.productIds }
       : { title: '', path: '', productIds: [] };
   });
-  console.log('[GridSection API] Sections returned to client:', JSON.stringify(sections));
+  _cache.sections = sections;
+  _cache.lastFetch = now;
   return NextResponse.json({ sections });
 }
