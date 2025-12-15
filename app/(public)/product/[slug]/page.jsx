@@ -101,7 +101,7 @@ export default function ProductBySlug() {
                 ) : product ? (
                     <>
                         <ProductDetails product={product} reviews={reviews} loadingReviews={loadingReviews} />
-                        <ProductDescription product={product} reviews={reviews} loadingReviews={loadingReviews} onReviewAdded={() => fetchReviews(product.id)} />
+                        <ProductDescription product={product} reviews={reviews || []} loadingReviews={loadingReviews} onReviewAdded={() => fetchReviews(product.id)} />
                         {/* Related Products */}
                         {relatedProducts.length > 0 && (
                             <div className="px-4 mt-12 mb-16">

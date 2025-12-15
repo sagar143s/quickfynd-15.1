@@ -9,7 +9,7 @@ import ProductCard from "./ProductCard"
 import { useSelector } from "react-redux"
 
 // Updated design - Noon.com style v2
-const ProductDescription = ({ product }) => {
+const ProductDescription = ({ product, reviews = [], loadingReviews = false, onReviewAdded }) => {
 
     // Use reviews and loadingReviews from props only
     const [suggestedProducts, setSuggestedProducts] = useState([])
