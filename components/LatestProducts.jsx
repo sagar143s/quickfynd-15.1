@@ -187,17 +187,19 @@ const BestSelling = () => {
   const displayQuantity = 10
   const products = useSelector((state) => state.product.list || [])
   const dispatch = useDispatch()
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    if (products.length === 0) {
+    if (!loaded && products.length === 0) {
       dispatch(fetchProducts({ limit: displayQuantity }))
+      setLoaded(true)
     }
-  }, [products.length, dispatch])
+  }, [loaded, dispatch])
 
   const baseSorted = useMemo(() =>
     products
       .slice()
-      .sort((a, b) => (b.rating?.length || b.ratingCount || 0) - (a.rating?.length || a.ratingCount || 0))
+      .sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0))
       .slice(0, displayQuantity)
   , [products, displayQuantity])
 

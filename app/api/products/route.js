@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
+import Rating from "@/models/Rating";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
@@ -75,7 +76,6 @@ export async function GET(request){
             .exec();
 
         // Add discount label and review stats if applicable
-        const Rating = require('@/models/Rating');
         products = await Promise.all(products.map(async product => {
             try {
                 let label = null;
