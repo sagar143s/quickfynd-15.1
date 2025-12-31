@@ -10,7 +10,7 @@ import { Toaster } from "react-hot-toast";
 export default function ClientLayout({ children }) {
   return (
     <ReduxProvider>
-      <TopBarNotification />
+      {/* <TopBarNotification /> */}
       <Navbar />
       <StoreProvider>
         <Toaster />

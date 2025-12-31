@@ -101,8 +101,8 @@ export default function Home() {
             )}
             
             <OriginalBrands/>
-            <QuickFyndCategoryDirectory/>
-            <KeywordPills />
+            {/* <QuickFyndCategoryDirectory/>
+            <KeywordPills /> */}
         </>
     );
 }
