@@ -240,17 +240,21 @@ export default function CheckoutPage() {
             }),
           });
 
-          if (verifyRes.ok) {
-            const orderData = await verifyRes.json();
+          const responseData = await verifyRes.json();
+
+          if (verifyRes.ok && responseData.success && responseData.orderId) {
+            // Payment successful - clear cart and redirect to success page
             dispatch(clearCart());
-            router.push(`/order-success?orderId=${orderData._id || orderData.orderId}`);
+            router.push(`/order-success?orderId=${responseData.orderId}`);
           } else {
-            setFormError("Payment verification failed. Please contact support.");
+            // Payment or order creation failed - redirect to failed page
             setPlacingOrder(false);
+            router.push(`/order-failed?reason=${encodeURIComponent(responseData.message || 'Payment verification failed')}`);
           }
         } catch (error) {
-          setFormError("Payment verification failed. Please try again.");
+          // Network or parsing error - redirect to failed page
           setPlacingOrder(false);
+          router.push(`/order-failed?reason=${encodeURIComponent('Payment verification error. Please contact support.')}`);
         }
       },
       prefill: {
@@ -264,7 +268,7 @@ export default function CheckoutPage() {
       modal: {
         ondismiss: function() {
           setPlacingOrder(false);
-          setFormError("Payment cancelled. Please try again.");
+          router.push(`/order-failed?reason=${encodeURIComponent('Payment cancelled by user')}`);
         }
       }
     };
@@ -422,13 +426,25 @@ export default function CheckoutPage() {
         } catch {}
         setFormError(msg);
         setPlacingOrder(false);
+        router.push(`/order-failed?reason=${encodeURIComponent(msg)}`);
         return;
       }
       const data = await res.json();
-      dispatch(clearCart());
-      router.push(`/order-success?orderId=${data._id || data.id}`);
+      if (data._id || data.id) {
+        // Order created successfully - clear cart and redirect
+        dispatch(clearCart());
+        router.push(`/order-success?orderId=${data._id || data.id}`);
+      } else {
+        // No order ID returned - treat as failure
+        setFormError("Order creation failed. Please try again.");
+        setPlacingOrder(false);
+        router.push(`/order-failed?reason=${encodeURIComponent('Order creation failed')}`);
+      }
     } catch (err) {
-      setFormError(err.message || "Order failed. Please try again.");
+      const errorMsg = err.message || "Order failed. Please try again.";
+      setFormError(errorMsg);
+      setPlacingOrder(false);
+      router.push(`/order-failed?reason=${encodeURIComponent(errorMsg)}`);
     } finally {
       setPlacingOrder(false);
     }
