@@ -97,22 +97,18 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                 return;
             }
 
-            // Validate phone number length
-            if (!address.phone || address.phone.length < 7 || address.phone.length > 15) {
+            // Clean and validate phone number
+            const cleanedPhone = address.phone.replace(/[^0-9]/g, '');
+            
+            if (!cleanedPhone || cleanedPhone.length < 7 || cleanedPhone.length > 15) {
                 toast.error('Phone number must be between 7 and 15 digits');
-                return;
-            }
-
-            // Validate phone contains only numbers
-            if (!/^[0-9]+$/.test(address.phone)) {
-                toast.error('Phone number must contain only digits');
                 return;
             }
             
             const token = await getToken()
             
             // Prepare address data with userId from authenticated user
-            const addressData = { ...address, userId: user.uid };
+            const addressData = { ...address, userId: user.uid, phone: cleanedPhone };
             
             if (!addressData.zip || addressData.zip.trim() === '') {
                 delete addressData.zip
