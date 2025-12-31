@@ -37,6 +37,14 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
     // Prefill when editing
     useEffect(() => {
         if (isEdit && initialAddress) {
+            // Extract phone number without country code if present
+            let phoneNumber = initialAddress.phone || '';
+            // If phone starts with +, remove country code part
+            if (phoneNumber.startsWith('+')) {
+                // Remove country code (everything before the actual number)
+                phoneNumber = phoneNumber.replace(/^\+\d+/, '').trim();
+            }
+            
             setAddress({
                 id: initialAddress.id || initialAddress._id || null,
                 name: initialAddress.name || '',
@@ -47,7 +55,7 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                 district: initialAddress.district || '',
                 zip: initialAddress.zip || '',
                 country: initialAddress.country || 'India',
-                phone: initialAddress.phone || '',
+                phone: phoneNumber,
                 phoneCode: initialAddress.phoneCode || '+91',
             })
         }
@@ -287,10 +295,13 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                                 value={address.phone} 
                                 className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
                                 type="tel" 
-                                placeholder="501234567" 
+                                placeholder="9876543210" 
                                 required 
-                                pattern="[0-9]{9,10}"
-                                title="Please enter a valid phone number"
+                                autoComplete="off"
+                                pattern="[0-9]+"
+                                minLength="7"
+                                maxLength="15"
+                                title="Please enter a valid phone number (7-15 digits)"
                             />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Enter phone number without country code</p>
