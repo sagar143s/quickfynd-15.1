@@ -6,11 +6,30 @@ import Product from "@/models/Product";
 import { verifyAuth } from "@/lib/verifyAuth";
 
 export async function POST(request) {
+  const startTime = Date.now();
+  
   try {
     await dbConnect();
     
     const body = await request.json();
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, paymentPayload } = body;
+
+    // Validate required fields
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      console.error('[Verify] Missing required fields');
+      return NextResponse.json({ 
+        success: false, 
+        message: "Missing payment verification data" 
+      }, { status: 400 });
+    }
+
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      console.error('[Verify] RAZORPAY_KEY_SECRET not configured');
+      return NextResponse.json({ 
+        success: false, 
+        message: "Payment system configuration error" 
+      }, { status: 500 });
+    }
 
     // Create signature
     const text = razorpay_order_id + "|" + razorpay_payment_id;
@@ -22,7 +41,8 @@ export async function POST(request) {
     // Verify signature
     if (generated_signature === razorpay_signature) {
       // Payment verified - now create order via the main orders API
-      console.log('Razorpay payment verified. Creating order...');
+      console.log('[Verify] Payment verified successfully:', razorpay_payment_id);
+      console.log('[Verify] Creating order in database...');
       
       // Prepare the order creation payload
       const orderPayload = {
@@ -65,6 +85,9 @@ export async function POST(request) {
       const orderId = orderData.id || orderData.orderId || orderData._id;
       
       if (orderResponse.ok && orderId) {
+        const duration = Date.now() - startTime;
+        console.log(`[Verify] Order created successfully: ${orderId} (${duration}ms)`);
+        
         return NextResponse.json({ 
           success: true,
           _id: orderId,
@@ -72,23 +95,32 @@ export async function POST(request) {
           message: "Payment verified and order created successfully" 
         });
       } else {
-        console.error('Order creation failed:', orderData);
+        console.error('[Verify] Order creation failed:', orderData);
+        console.error('[Verify] Response status:', orderResponse.status);
+        
         return NextResponse.json({ 
           success: false, 
           message: orderData.error || "Order creation failed after payment" 
         }, { status: 400 });
       }
     } else {
+      console.error('[Verify] Signature verification failed');
+      console.error('[Verify] Expected:', generated_signature);
+      console.error('[Verify] Received:', razorpay_signature);
+      
       return NextResponse.json({ 
         success: false, 
         message: "Payment verification failed" 
       }, { status: 400 });
     }
   } catch (error) {
-    console.error("Razorpay verification error:", error);
+    console.error("[Verify] Critical error:", error);
+    console.error("[Verify] Stack:", error.stack);
+    
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      message: "Payment verification system error"
     }, { status: 500 });
   }
 }
