@@ -299,7 +299,14 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                             </select>
                             <input 
                                 name="phone" 
-                                onChange={handleAddressChange} 
+                                onChange={(e) => {
+                                    // Only allow numbers
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    setAddress({
+                                        ...address,
+                                        phone: value
+                                    });
+                                }}
                                 value={address.phone} 
                                 className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
                                 type="text"
@@ -307,10 +314,6 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                                 placeholder="9876543210" 
                                 required 
                                 autoComplete="off"
-                                onInput={(e) => {
-                                    // Allow only numbers during input
-                                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                                }}
                             />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Enter phone number without country code</p>
