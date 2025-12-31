@@ -21,17 +21,22 @@ function OrderSuccessContent() {
   const router = useRouter();
   const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { user, loading: authLoading, getToken } = useAuth();
+  const { user, getToken } = useAuth();
 
   useEffect(() => {
     const fetchOrder = async (orderId) => {
       try {
         let fetchOptions = {};
+        // Try to add token if user is logged in, but don't wait
         if (user && getToken) {
-          const token = await getToken();
-          fetchOptions.headers = {
-            Authorization: `Bearer ${token}`,
-          };
+          try {
+            const token = await getToken();
+            fetchOptions.headers = {
+              Authorization: `Bearer ${token}`,
+            };
+          } catch (e) {
+            // Continue without token
+          }
         }
         const res = await fetch(`/api/orders?orderId=${orderId}`, fetchOptions);
         const data = await res.json();
@@ -49,7 +54,6 @@ function OrderSuccessContent() {
       }
     };
 
-    if (authLoading) return;
     const orderId = params.get('orderId');
     console.log('OrderSuccessContent: orderId from params:', orderId);
     if (!orderId) {
@@ -57,9 +61,10 @@ function OrderSuccessContent() {
       router.replace('/');
       return;
     }
+    // Fetch immediately without waiting for auth
     fetchOrder(orderId);
     // eslint-disable-next-line
-  }, [params, router, user, authLoading, getToken]);
+  }, [params, router, user, getToken]);
 
   // Use first order for summary
   const order = orders && orders.length > 0 ? orders[0] : null;

@@ -11,9 +11,16 @@ import { fetchShippingSettings, calculateShipping } from "@/lib/shipping";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import dynamic from "next/dynamic";
+import Script from "next/script";
+import Creditimage1 from '../../../assets/creditcards/19 - Copy.webp';
+import Creditimage2 from '../../../assets/creditcards/16 - Copy.webp';
+import Creditimage3 from '../../../assets/creditcards/20.webp';
+import Creditimage4 from '../../../assets/creditcards/11.webp';
+import Image from "next/image";
 
 const SignInModal = dynamic(() => import("@/components/SignInModal"), { ssr: false });
 const AddressModal = dynamic(() => import("@/components/AddressModal"), { ssr: false });
+const PincodeModal = dynamic(() => import("@/components/PincodeModal"), { ssr: false });
 
 export default function CheckoutPage() {
   const { user, loading: authLoading, getToken } = useAuth();
@@ -22,6 +29,8 @@ export default function CheckoutPage() {
   const addressFetchError = useSelector((state) => state.address?.error);
   const { cartItems } = useSelector((state) => state.cart);
   const products = useSelector((state) => state.product.list);
+  
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
   const [form, setForm] = useState({
     addressId: "",
@@ -46,6 +55,7 @@ export default function CheckoutPage() {
   const [shipping, setShipping] = useState(0);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showPincodeModal, setShowPincodeModal] = useState(false);
 
   // Coupon logic
   const [coupon, setCoupon] = useState("");
@@ -83,6 +93,58 @@ export default function CheckoutPage() {
     }
   }, [user, addressList, form.addressId]);
 
+  // Auto-open pincode modal for guests without saved addresses or when no address is present
+  useEffect(() => {
+    if (!authLoading && !user && addressList.length === 0 && !form.pincode) {
+      const timer = setTimeout(() => {
+        setShowPincodeModal(true);
+      }, 500); // Small delay for better UX
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user, addressList, form.pincode]);
+
+  const handlePincodeSubmit = (pincodeData) => {
+    setForm(f => ({
+      ...f,
+      pincode: pincodeData.pincode,
+      city: pincodeData.city,
+      district: pincodeData.district,
+      state: pincodeData.state,
+      country: pincodeData.country
+    }));
+    // Update districts for the selected state
+    const stateObj = indiaStatesAndDistricts.find(s => s.state === pincodeData.state);
+    if (stateObj) {
+      setDistricts(stateObj.districts);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this address? This action cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/address/${addressId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        // Refresh address list
+        dispatch(fetchAddress({ getToken }));
+        setFormError("");
+      } else {
+        const error = await res.json();
+        setFormError(error.message || "Failed to delete address");
+      }
+    } catch (error) {
+      setFormError("Failed to delete address. Please try again.");
+    }
+  };
+
   // Build cart array
   const cartArray = [];
   console.log('Checkout - Cart Items:', cartItems);
@@ -103,24 +165,30 @@ export default function CheckoutPage() {
   const subtotal = cartArray.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const total = subtotal + shipping;
 
-  // Load shipping settings
+  // Load shipping settings - refetch on page load and when products change
   useEffect(() => {
     async function loadShipping() {
       const setting = await fetchShippingSettings();
       setShippingSetting(setting);
+      console.log('Shipping settings loaded:', setting);
     }
     loadShipping();
-  }, []);
+  }, [products]); // Refetch when products load
 
   // Calculate dynamic shipping based on settings
   useEffect(() => {
     if (shippingSetting && cartArray.length > 0) {
-      const calculatedShipping = calculateShipping({ cartItems: cartArray, shippingSetting });
+      const calculatedShipping = calculateShipping({ 
+        cartItems: cartArray, 
+        shippingSetting,
+        paymentMethod: form.payment === 'cod' ? 'COD' : 'CARD'
+      });
       setShipping(calculatedShipping);
+      console.log('Calculated shipping:', calculatedShipping, 'Settings:', shippingSetting, 'Payment:', form.payment);
     } else {
       setShipping(0);
     }
-  }, [shippingSetting, cartArray]);
+  }, [shippingSetting, cartArray, form.payment]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -132,9 +200,78 @@ export default function CheckoutPage() {
     } else if (name === 'country') {
       setForm(f => ({ ...f, country: value, state: '', district: '' }));
       if (value !== 'India') setDistricts([]);
+    } else if (name === 'payment') {
+      // If trying to select COD and not logged in, show sign-in instead
+      if (value === 'cod' && !user) {
+        setShowSignIn(true);
+        return; // Don't change the payment method yet
+      }
+      setForm(f => ({ ...f, [name]: value }));
     } else {
       setForm(f => ({ ...f, [name]: value }));
     }
+  };
+
+  // Razorpay Payment Handler
+  const handleRazorpayPayment = async (paymentPayload) => {
+    if (!razorpayLoaded) {
+      setFormError("Payment system is loading. Please wait...");
+      return false;
+    }
+
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: total * 100, // Amount in paise
+      currency: "INR",
+      name: "QuickFynd",
+      description: "Order Payment",
+      image: "/logo.png",
+      handler: async function (response) {
+        try {
+          // Verify payment on backend AND create order
+          const verifyRes = await fetch("/api/razorpay/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              paymentPayload: paymentPayload,
+            }),
+          });
+
+          if (verifyRes.ok) {
+            const orderData = await verifyRes.json();
+            dispatch(clearCart());
+            router.push(`/order-success?orderId=${orderData._id || orderData.orderId}`);
+          } else {
+            setFormError("Payment verification failed. Please contact support.");
+            setPlacingOrder(false);
+          }
+        } catch (error) {
+          setFormError("Payment verification failed. Please try again.");
+          setPlacingOrder(false);
+        }
+      },
+      prefill: {
+        name: form.name || user?.displayName || "",
+        email: form.email || user?.email || "",
+        contact: form.phone || "",
+      },
+      theme: {
+        color: "#F97316", // Orange color
+      },
+      modal: {
+        ondismiss: function() {
+          setPlacingOrder(false);
+          setFormError("Payment cancelled. Please try again.");
+        }
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+    return true;
   };
 
   const [formError, setFormError] = useState("");
@@ -146,6 +283,69 @@ export default function CheckoutPage() {
       setFormError("Your cart is empty.");
       return;
     }
+    
+    // For card payment, trigger Razorpay (allows guest checkout)
+    if (form.payment === 'card') {
+      setPlacingOrder(true);
+      // Validate phone number
+      if (!form.phone || !/^[0-9]{7,15}$/.test(form.phone)) {
+        setFormError("Please enter a valid phone number (7-15 digits).");
+        setPlacingOrder(false);
+        return;
+      }
+      // Prepare payload but DON'T create order yet - wait for payment verification
+      try {
+        let payload = {
+          items: cartArray.map(({ _id, quantity }) => ({ id: _id, quantity })),
+          paymentMethod: 'CARD',
+          shippingFee: shipping,
+          paymentStatus: 'pending',
+        };
+        
+        if (user) {
+          const addressId = form.addressId || (addressList[0] && addressList[0]._id);
+          if (addressId) {
+            payload.addressId = addressId;
+          }
+        } else {
+          if (!form.name || !form.email || !form.phone || !form.street || !form.city || !form.state || !form.country) {
+            setFormError("Please fill all required shipping details.");
+            setPlacingOrder(false);
+            return;
+          }
+          payload.isGuest = true;
+          payload.guestInfo = {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            street: form.street,
+            city: form.city,
+            state: form.state,
+            country: form.country,
+            pincode: form.pincode,
+          };
+        }
+        
+        if (user && getToken) {
+          payload.token = await getToken();
+        }
+        
+        // Open Razorpay without creating order first
+        await handleRazorpayPayment(payload);
+      } catch (error) {
+        setFormError(error.message || "Payment failed");
+        setPlacingOrder(false);
+      }
+      return;
+    }
+    
+    // COD and other payment methods - REQUIRES LOGIN
+    if (!user) {
+      setFormError("Please sign in to use Cash on Delivery. Or use Credit Card for guest checkout.");
+      setShowSignIn(true);
+      return;
+    }
+    
     setPlacingOrder(true);
     try {
       let addressId = form.addressId;
@@ -153,22 +353,10 @@ export default function CheckoutPage() {
       // Orders can work without addressId
       
       // Validate payment method
-      if (user && !form.payment) {
+      if (!form.payment) {
         setFormError("Please select a payment method.");
         setPlacingOrder(false);
         return;
-      }
-      if (!user) {
-        if (!form.name || !form.email || !form.phone || !form.street || !form.city || !form.state || !form.country) {
-          setFormError("Please fill all required shipping details.");
-          setPlacingOrder(false);
-          return;
-        }
-        if (!form.payment) {
-          setFormError("Please select a payment method.");
-          setPlacingOrder(false);
-          return;
-        }
       }
       // Build order payload
       let payload;
@@ -200,27 +388,6 @@ export default function CheckoutPage() {
             district: form.district || ''
           };
         }
-      } else {
-        console.log('Building guest payload...');
-        payload = {
-          isGuest: true,
-          guestInfo: {
-            name: form.name,
-            email: form.email,
-            phone: form.phone,
-            address: form.street,
-            street: form.street,
-            city: form.city,
-            state: form.state,
-            country: form.country || 'India',
-            pincode: form.pincode || '',
-            district: form.district || '',
-            zip: form.pincode || '000000',
-          },
-          items: cartArray.map(({ _id, quantity }) => ({ id: _id, quantity })),
-          paymentMethod: form.payment === 'cod' ? 'COD' : form.payment.toUpperCase(),
-          shippingFee: shipping,
-        };
       }
       
       console.log('Submitting order:', payload);
@@ -344,7 +511,17 @@ export default function CheckoutPage() {
             </div>
             {/* Shipping Details Section */}
             <form id="checkout-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
-              {formError && <div className="text-red-600 font-semibold mb-2">{formError}</div>}
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
+                  <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <div className="font-semibold">Payment Error</div>
+                    <div className="text-sm mt-1">{formError}</div>
+                  </div>
+                </div>
+              )}
               
               {/* Guest Checkout Notice */}
               {!user && (
@@ -397,6 +574,13 @@ export default function CheckoutPage() {
                     <button type="button" className="text-blue-600 text-xs font-semibold hover:underline" onClick={() => setShowAddressModal(true)}>
                       Add new address
                     </button>
+                    <button 
+                      type="button" 
+                      className="text-red-600 text-xs font-semibold hover:underline" 
+                      onClick={() => handleDeleteAddress(addressList[0]._id)}
+                    >
+                      Delete address
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -433,9 +617,14 @@ export default function CheckoutPage() {
                       placeholder="Phone number"
                       value={form.phone || ''}
                       onChange={handleChange}
+                      pattern="[0-9]{7,15}"
+                      title="Phone number must be 7-15 digits"
                       required
                     />
                   </div>
+                  {form.phone && !/^[0-9]{7,15}$/.test(form.phone) && (
+                    <div className="text-red-500 text-sm">Phone number must be 7-15 digits</div>
+                  )}
                   {/* Email (optional) */}
                   <input
                     className="border border-gray-200 bg-white rounded px-4 py-2 focus:border-gray-400"
@@ -445,22 +634,36 @@ export default function CheckoutPage() {
                     value={form.email || ''}
                     onChange={handleChange}
                   />
-                  {/* Pincode */}
-                  <input
-                    className="border border-gray-200 bg-white rounded px-4 py-2 focus:border-gray-400"
-                    type="text"
-                    name="pincode"
-                    placeholder="Pincode"
-                    value={form.pincode || ''}
-                    onChange={handleChange}
-                    required={form.country === 'India'}
-                  />
-                  {/* City */}
+                  {/* Pincode with auto-fill option */}
+                  <div className="flex gap-2 items-center">
+                    <input
+                      className="border border-gray-200 bg-white rounded px-4 py-2 focus:border-gray-400 flex-1"
+                      type="text"
+                      name="pincode"
+                      placeholder="Pincode"
+                      value={form.pincode || ''}
+                      onChange={handleChange}
+                      required={form.country === 'India'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPincodeModal(true)}
+                      className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 whitespace-nowrap text-sm font-semibold"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
+                  {form.pincode && (
+                    <div className="text-xs text-gray-500 -mt-2">
+                      ✓ Address auto-filled from pincode
+                    </div>
+                  )}
+                  {/* City - Auto-filled from pincode */}
                   <input
                     className="border border-gray-200 bg-white rounded px-4 py-2 focus:border-gray-400"
                     type="text"
                     name="city"
-                    placeholder="City"
+                    placeholder="City (auto-filled from pincode)"
                     value={form.city || ''}
                     onChange={handleChange}
                     required
@@ -519,21 +722,68 @@ export default function CheckoutPage() {
                   </select>
                 </div>
               )}
-              <h2 className="text-xl font-bold mb-2 text-gray-900">Payment methods</h2>
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <h2 className="text-xl font-bold mb-4 text-gray-900">Payment methods</h2>
+              <div className="flex flex-col gap-3">
+                {/* Credit Card / Razorpay Option */}
+                <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50/30 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="card"
+                    checked={form.payment === 'card'}
+                    onChange={handleChange}
+                    className="accent-blue-600 w-5 h-5 mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                        <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd"/>
+                      </svg>
+                      <span className="font-semibold text-gray-900">Credit Card</span>
+                      <div className="flex items-center gap-0.5 ml-auto">
+                        <Image src={Creditimage4} alt="Visa" width={30} height={18} className="object-contain"/>
+                        <Image src={Creditimage3} alt="Mastercard" width={30} height={18} className="object-contain"/>
+                        <Image src={Creditimage2} alt="Card" width={30} height={18} className="object-contain"/>
+                        <Image src={Creditimage1} alt="Card" width={30} height={18} className="object-contain"/>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+
+                {/* Cash on Delivery Option */}
+                <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-green-400 hover:bg-green-50/30 has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
                   <input
                     type="radio"
                     name="payment"
                     value="cod"
                     checked={form.payment === 'cod'}
                     onChange={handleChange}
-                    className="accent-red-600 w-5 h-5"
+                    className="accent-green-600 w-5 h-5 mt-0.5"
                   />
-                  <span className="font-semibold text-gray-900">Cash on Delivery</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
+                      </svg>
+                      <span className="font-semibold text-gray-900">Cash on Delivery</span>
+                    </div>
+                  </div>
                 </label>
-                {/* Add more payment methods here if needed */}
               </div>
+              {!user && (
+                <div className="mt-3 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <span className="font-semibold text-blue-900">Note:</span> To proceed with Cash on Delivery, please{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowSignIn(true)}
+                    className="text-blue-600 font-semibold hover:underline"
+                  >
+                    sign in
+                  </button>{" "}
+                  or create an account.
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -585,6 +835,18 @@ export default function CheckoutPage() {
         dispatch(fetchAddress({ getToken }));
       }} />
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
+      <PincodeModal 
+        open={showPincodeModal} 
+        onClose={() => setShowPincodeModal(false)} 
+        onPincodeSubmit={handlePincodeSubmit}
+      />
+      
+      {/* Razorpay Script */}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        onLoad={() => setRazorpayLoaded(true)}
+        onError={() => setFormError("Failed to load payment system")}
+      />
     </div>
   );
 }
