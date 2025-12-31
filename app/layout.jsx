@@ -19,13 +19,15 @@ export const metadata = {
   },
 };
 
-// Performance optimization
+// Performance optimization - Prevent auto-zoom on mobile
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  minimumScale: 1,
   userScalable: false,
   themeColor: '#ffffff',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }) {
@@ -38,8 +40,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* Disable auto-zoom on mobile */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         {/* ImageKit Optimization */}
         {ikOrigin && (
           <>
