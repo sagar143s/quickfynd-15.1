@@ -277,10 +277,13 @@ export default function CheckoutPage() {
 
             const responseData = await verifyRes.json();
 
-            if (verifyRes.ok && responseData.success && responseData.orderId) {
+            // Check for orderId from verify response (handles both _id and orderId fields)
+            const orderId = responseData.orderId || responseData._id || responseData.id;
+
+            if (verifyRes.ok && responseData.success && orderId) {
               // Payment successful - clear cart and redirect to success page
               dispatch(clearCart());
-              router.push(`/order-success?orderId=${responseData.orderId}`);
+              router.push(`/order-success?orderId=${orderId}`);
             } else {
               // Payment or order creation failed - redirect to failed page
               setPlacingOrder(false);

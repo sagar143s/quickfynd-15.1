@@ -61,11 +61,14 @@ export async function POST(request) {
       const orderResponse = await createOrder(orderRequest);
       const orderData = await orderResponse.json();
 
-      if (orderResponse.ok && orderData.orderId) {
+      // Check for id field (from orders API response) or orderId
+      const orderId = orderData.id || orderData.orderId || orderData._id;
+      
+      if (orderResponse.ok && orderId) {
         return NextResponse.json({ 
           success: true,
-          _id: orderData.orderId,
-          orderId: orderData.orderId,
+          _id: orderId,
+          orderId: orderId,
           message: "Payment verified and order created successfully" 
         });
       } else {

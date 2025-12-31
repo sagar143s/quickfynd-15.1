@@ -414,7 +414,7 @@ export async function POST(request) {
                     model: 'Product'
                 })
                 .lean();
-            return NextResponse.json({ message: 'Orders Placed Successfully', orders, id: orders[0]?._id.toString() });
+            return NextResponse.json({ message: 'Orders Placed Successfully', orders, id: orders[0]?._id.toString(), orderId: orders[0]?._id.toString() });
         } else {
             // Return the last order
             const order = await Order.findById(orderIds[orderIds.length - 1])
@@ -424,7 +424,7 @@ export async function POST(request) {
                     model: 'Product'
                 })
                 .lean();
-            return NextResponse.json({ message: 'Orders Placed Successfully', order, id: order._id.toString() });
+            return NextResponse.json({ message: 'Orders Placed Successfully', order, id: order._id.toString(), orderId: order._id.toString() });
         }
     } catch (error) {
         console.error(error);
