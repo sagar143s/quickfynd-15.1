@@ -16,14 +16,16 @@ export async function PUT(request, { params }) {
         }
         const idToken = authHeader.split(" ")[1];
         const { getAuth } = await import('firebase-admin/auth');
-        const { initializeApp, applicationDefault, getApps } = await import('firebase-admin/app');
+        const { initializeApp, cert, getApps } = await import('firebase-admin/app');
         if (getApps().length === 0) {
-            initializeApp({ credential: applicationDefault() });
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+            initializeApp({ credential: cert(serviceAccount) });
         }
         let decodedToken;
         try {
             decodedToken = await getAuth().verifyIdToken(idToken);
         } catch (e) {
+            console.error('[PUT order] Token verification failed:', e);
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const userId = decodedToken.uid;
@@ -137,14 +139,16 @@ export async function DELETE(request, { params }) {
         }
         const idToken = authHeader.split(" ")[1];
         const { getAuth } = await import('firebase-admin/auth');
-        const { initializeApp, applicationDefault, getApps } = await import('firebase-admin/app');
+        const { initializeApp, cert, getApps } = await import('firebase-admin/app');
         if (getApps().length === 0) {
-            initializeApp({ credential: applicationDefault() });
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+            initializeApp({ credential: cert(serviceAccount) });
         }
         let decodedToken;
         try {
             decodedToken = await getAuth().verifyIdToken(idToken);
         } catch (e) {
+            console.error('[DELETE order] Token verification failed:', e);
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const userId = decodedToken.uid;
