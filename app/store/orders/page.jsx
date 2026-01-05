@@ -612,12 +612,16 @@ export default function StoreOrders() {
                                         if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) return;
                                         try {
                                             const token = await getToken();
-                                            await axios.delete(`/api/store/orders/${selectedOrder._id}`, {
+                                            const orderIdToDelete = selectedOrder._id;
+                                            await axios.delete(`/api/store/orders/${orderIdToDelete}`, {
                                                 headers: { Authorization: `Bearer ${token}` }
                                             });
+                                            // Update local state immediately
+                                            setOrders(prevOrders => prevOrders.filter(o => o._id !== orderIdToDelete));
+                                            setFilteredOrders(prevFiltered => prevFiltered.filter(o => o._id !== orderIdToDelete));
                                             toast.success('Order deleted successfully');
                                             setIsModalOpen(false);
-                                            fetchOrders();
+                                            setSelectedOrder(null);
                                         } catch (error) {
                                             toast.error(error?.response?.data?.error || 'Failed to delete order');
                                         }
