@@ -145,12 +145,12 @@ function OrderSuccessContent() {
                 </thead>
                 <tbody>
                   {products.map((item, idx) => (
-                    <tr key={typeof item.productId === 'string' || typeof item.productId === 'number' ? item.productId : idx} className='border-b'>
+                    <tr key={typeof item.productId === 'string' || typeof item.productId === 'number' ? item.productId._id || item.productId : idx} className='border-b'>
                       <td className='py-2 flex items-center gap-3'>
-                        {item.product?.images?.[0] && (
-                          <img src={item.product.images[0]} alt={item.product.name} className='w-12 h-12 rounded object-cover border' />
+                        {item.productId?.images?.[0] && (
+                          <img src={item.productId.images[0]} alt={item.productId.name} className='w-12 h-12 rounded object-cover border' />
                         )}
-                        <span>{item.product?.name}</span>
+                        <span>{item.productId?.name || item.name}</span>
                       </td>
                       <td className='py-2 text-right'>{currency} {(item.price * item.quantity).toLocaleString()}</td>
                     </tr>

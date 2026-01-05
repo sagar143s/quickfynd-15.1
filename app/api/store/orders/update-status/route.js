@@ -36,9 +36,25 @@ export async function POST(request) {
         }
 
         // Validate status
-        const validStatuses = ['ORDER_PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        const validStatuses = [
+            'ORDER_PLACED',
+            'PROCESSING',
+            'SHIPPED',
+            'DELIVERED',
+            'CANCELLED',
+            'PAYMENT_FAILED',
+            'RETURNED',
+            'RETURN_INITIATED',
+            'RETURN_APPROVED',
+            // Support legacy lowercase versions
+            'pending',
+            'processing',
+            'shipped',
+            'delivered',
+            'cancelled'
+        ];
         if (!validStatuses.includes(status)) {
-            return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+            return NextResponse.json({ error: `Invalid status: ${status}. Valid statuses are: ${validStatuses.join(', ')}` }, { status: 400 });
         }
 
         // Connect to database

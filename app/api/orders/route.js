@@ -95,6 +95,10 @@ export async function POST(request) {
             if (!userId || !paymentMethod || !items || !Array.isArray(items) || items.length === 0) {
                 return NextResponse.json({ error: 'missing order details.' }, { status: 400 });
             }
+            // Validate that address is provided for logged-in users
+            if (!addressId && (!addressData || !addressData.street)) {
+                return NextResponse.json({ error: 'Shipping address is required to place an order' }, { status: 400 });
+            }
         }
 
         // Coupon logic

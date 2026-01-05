@@ -44,10 +44,22 @@ export default function StoreOrders() {
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showAddressModal, setShowAddressModal] = useState(false);
     const [trackingData, setTrackingData] = useState({
         trackingId: '',
         trackingUrl: '',
         courier: ''
+    });
+    const [addressFormData, setAddressFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: '',
+        district: ''
     });
     const [filterStatus, setFilterStatus] = useState('ALL');
 
@@ -464,6 +476,15 @@ export default function StoreOrders() {
                                                 Customer: {selectedOrder.userId.name || selectedOrder.userId.email || 'Unknown'}
                                             </p>
                                         )}
+                                        <button 
+                                            onClick={() => {
+                                                // Open a modal to add address
+                                                setShowAddressModal(true);
+                                            }}
+                                            className="mt-2 text-xs px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition"
+                                        >
+                                            Add Address
+                                        </button>
                                     </div>
                                 )}
                                 
@@ -608,6 +629,121 @@ export default function StoreOrders() {
                                     <span className="text-sm">Delete</span>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Address Modal */}
+            {showAddressModal && selectedOrder && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-semibold mb-4">Add Shipping Address</h3>
+                        <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                            <input 
+                                type="text" 
+                                placeholder="Name" 
+                                value={addressFormData.name}
+                                onChange={(e) => setAddressFormData({...addressFormData, name: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="email" 
+                                placeholder="Email" 
+                                value={addressFormData.email}
+                                onChange={(e) => setAddressFormData({...addressFormData, email: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Phone" 
+                                value={addressFormData.phone}
+                                onChange={(e) => setAddressFormData({...addressFormData, phone: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Street" 
+                                value={addressFormData.street}
+                                onChange={(e) => setAddressFormData({...addressFormData, street: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="City" 
+                                value={addressFormData.city}
+                                onChange={(e) => setAddressFormData({...addressFormData, city: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="State" 
+                                value={addressFormData.state}
+                                onChange={(e) => setAddressFormData({...addressFormData, state: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="ZIP Code" 
+                                value={addressFormData.zip}
+                                onChange={(e) => setAddressFormData({...addressFormData, zip: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Country" 
+                                value={addressFormData.country}
+                                onChange={(e) => setAddressFormData({...addressFormData, country: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="District (Optional)" 
+                                value={addressFormData.district}
+                                onChange={(e) => setAddressFormData({...addressFormData, district: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => {
+                                    setShowAddressModal(false);
+                                    setAddressFormData({
+                                        name: '', email: '', phone: '', street: '', 
+                                        city: '', state: '', zip: '', country: '', district: ''
+                                    });
+                                }}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={async () => {
+                                    if (!addressFormData.street || !addressFormData.city || !addressFormData.country) {
+                                        toast.error('Please fill in required fields: Street, City, Country');
+                                        return;
+                                    }
+                                    try {
+                                        const token = await getToken();
+                                        await axios.patch(`/api/store/orders/${selectedOrder._id}/address`, 
+                                            { shippingAddress: addressFormData },
+                                            { headers: { Authorization: `Bearer ${token}` } }
+                                        );
+                                        toast.success('Address added successfully');
+                                        setShowAddressModal(false);
+                                        setAddressFormData({
+                                            name: '', email: '', phone: '', street: '', 
+                                            city: '', state: '', zip: '', country: '', district: ''
+                                        });
+                                        fetchOrders();
+                                    } catch (error) {
+                                        toast.error(error?.response?.data?.error || 'Failed to add address');
+                                    }
+                                }}
+                                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                            >
+                                Save Address
+                            </button>
                         </div>
                     </div>
                 </div>

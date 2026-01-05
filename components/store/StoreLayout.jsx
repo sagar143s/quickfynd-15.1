@@ -17,11 +17,13 @@ const StoreLayout = ({ children }) => {
     const [isSeller, setIsSeller] = useState(false);
     const [sellerLoading, setSellerLoading] = useState(true);
     const [storeInfo, setStoreInfo] = useState(null);
+    const [lastFetchTime, setLastFetchTime] = useState(0);
+    const [tokenRefreshTimer, setTokenRefreshTimer] = useState(null);
 
-    const fetchIsSeller = async () => {
+    const fetchIsSeller = async (forceRefresh = false) => {
         if (!user) return;
         try {
-            const token = await getToken(true); // Force refresh token
+            const token = await getToken(forceRefresh); // Force refresh token
             if (!token) {
                 console.log('[StoreLayout] No token available');
                 setSellerLoading(false);
@@ -34,6 +36,7 @@ const StoreLayout = ({ children }) => {
             console.log('[StoreLayout] /api/store/is-seller response:', data);
             setIsSeller(data.isSeller);
             setStoreInfo(data.storeInfo);
+            setLastFetchTime(Date.now());
         } catch (error) {
             console.log('[StoreLayout] is-seller error:', error?.response?.data || error.message);
             setIsSeller(false);
@@ -41,6 +44,41 @@ const StoreLayout = ({ children }) => {
             setSellerLoading(false);
         }
     };
+
+    // Set up token refresh timer - refresh every 45 minutes to stay ahead of 1-hour expiration
+    useEffect(() => {
+        if (user && isSeller) {
+            const timer = setInterval(() => {
+                console.log('[StoreLayout] Auto-refreshing token');
+                fetchIsSeller(true);
+            }, 45 * 60 * 1000); // 45 minutes
+
+            setTokenRefreshTimer(timer);
+            return () => clearInterval(timer);
+        }
+    }, [user, isSeller]);
+
+    // Also set up a listener for when user becomes inactive/active
+    useEffect(() => {
+        if (!user) return;
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // Page became visible - check if we need to refresh
+                const timeSinceLastFetch = Date.now() - lastFetchTime;
+                console.log('[StoreLayout] Page became visible, time since last fetch:', timeSinceLastFetch);
+                
+                // If more than 10 minutes have passed, refresh the token
+                if (timeSinceLastFetch > 10 * 60 * 1000) {
+                    console.log('[StoreLayout] Refreshing token due to page visibility');
+                    fetchIsSeller(true);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [user, lastFetchTime]);
 
     useEffect(() => {
         if (!loading && user) {
