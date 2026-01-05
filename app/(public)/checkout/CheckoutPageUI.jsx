@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { countryCodes } from "@/assets/countryCodes";
 import { indiaStatesAndDistricts } from "@/assets/indiaStatesAndDistricts";
 import { useSelector, useDispatch } from "react-redux";
@@ -146,32 +146,39 @@ export default function CheckoutPage() {
     }
   };
 
-  // Build cart array
-  const cartArray = [];
-  console.log('Checkout - Cart Items:', cartItems);
-  console.log('Checkout - Products:', products?.map(p => ({ id: p._id, name: p.name })));
-  
-  for (const [key, value] of Object.entries(cartItems || {})) {
-    const product = products?.find((p) => String(p._id) === String(key));
-    if (product) {
-      console.log('Found product for key:', key, product.name);
-      // Ensure product has required fields
-      if (!product._id || !product.price) {
-        console.warn('Product missing required fields:', product);
-        continue;
+  // Build cart array with useMemo to prevent re-computation on every render
+  const cartArray = useMemo(() => {
+    const array = [];
+    console.log('Checkout - Cart Items:', cartItems);
+    console.log('Checkout - Products:', products?.map(p => ({ id: p._id, name: p.name })));
+    
+    for (const [key, value] of Object.entries(cartItems || {})) {
+      const product = products?.find((p) => String(p._id) === String(key));
+      if (product) {
+        console.log('Found product for key:', key, product.name);
+        // Ensure product has required fields
+        if (!product._id || !product.price) {
+          console.warn('Product missing required fields:', product);
+          continue;
+        }
+        array.push({ ...product, quantity: value });
+      } else {
+        console.log('No product found for key:', key);
       }
-      cartArray.push({ ...product, quantity: value });
-    } else {
-      console.log('No product found for key:', key);
     }
-  }
+    
+    console.log('Checkout - Final Cart Array:', array);
+    return array;
+  }, [cartItems, products]);
   
-  console.log('Checkout - Final Cart Array:', cartArray);
-
-  const subtotal = cartArray.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0);
+  const subtotal = useMemo(() => 
+    cartArray.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0),
+    [cartArray]
+  );
+  
   const total = subtotal + shipping;
 
-  // Load shipping settings - refetch on page load and when products change
+  // Load shipping settings - refetch on page load only
   useEffect(() => {
     async function loadShipping() {
       const setting = await fetchShippingSettings();
@@ -179,7 +186,7 @@ export default function CheckoutPage() {
       console.log('Shipping settings loaded:', setting);
     }
     loadShipping();
-  }, [products]); // Refetch when products load
+  }, []); // Only load once on mount
 
   // Calculate dynamic shipping based on settings
   useEffect(() => {

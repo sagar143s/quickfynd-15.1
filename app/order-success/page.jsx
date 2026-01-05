@@ -68,18 +68,18 @@ function OrderSuccessContent() {
 
   // Use first order for summary
   const order = orders && orders.length > 0 ? orders[0] : null;
-  // Generate readable order number (e.g., S523645)
-  function getOrderNumber(id) {
+  
+  // Get actual order number - use shortOrderNumber if available, otherwise last 8 chars of order ID
+  function getOrderNumber(order) {
+    if (!order) return '';
+    // If order has a shortOrderNumber field, use it
+    if (order.shortOrderNumber) return String(order.shortOrderNumber);
+    // Otherwise show last 8 characters of _id
+    const id = order._id || order.id;
     if (!id) return '';
-    // Deterministically convert the full order id into a 6-digit numeric order number
-    // This keeps the URL using the real id while showing a short numeric order number to users.
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-    }
-    const num = (hash % 900000) + 100000; // ensures 6 digits between 100000-999999
-    return String(num);
+    return id.toString().slice(-8);
   }
+  
   // Calculate totals
   const products = order ? order.orderItems : [];
   const subtotal = products.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -120,13 +120,13 @@ function OrderSuccessContent() {
             <div className='bg-gray-100 rounded-lg py-6 mb-8 text-center'>
               <div className='text-sm text-gray-500 mb-2'>Order no.</div>
               <div className='text-3xl font-bold text-red-600 mb-2'>
-                {getOrderNumber(order?._id)}
+                {getOrderNumber(order)}
               </div>
-              <button className='text-xs text-gray-400 hover:text-gray-600' onClick={() => navigator.clipboard.writeText(getOrderNumber(order?._id))}>Copy order number</button>
+              <button className='text-xs text-gray-400 hover:text-gray-600' onClick={() => navigator.clipboard.writeText(getOrderNumber(order))}>Copy order number</button>
             </div>
             <div className='flex flex-col md:flex-row justify-between items-center bg-gray-50 rounded-lg p-4 mb-8 gap-4'>
               <div className='text-sm'>
-                <div><span className='font-semibold'>Order no.:</span> {getOrderNumber(order?._id)}</div>
+                <div><span className='font-semibold'>Order no.:</span> {getOrderNumber(order)}</div>
                 <div><span className='font-semibold'>Order date:</span> {orderDate}</div>
               </div>
               <div className='text-sm'>

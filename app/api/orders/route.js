@@ -475,15 +475,17 @@ export async function GET(request) {
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const idToken = authHeader.split('Bearer ')[1];
             const { getAuth } = await import('firebase-admin/auth');
-            const { initializeApp, applicationDefault, getApps } = await import('firebase-admin/app');
+            const { initializeApp, cert, getApps } = await import('firebase-admin/app');
             if (getApps().length === 0) {
-                initializeApp({ credential: applicationDefault() });
+                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+                initializeApp({ credential: cert(serviceAccount) });
             }
             try {
                 const decodedToken = await getAuth().verifyIdToken(idToken);
                 userId = decodedToken.uid;
             } catch (e) {
-                // Not signed in, userId remains null
+                console.error('GET /api/orders: Token verification failed:', e);
+                return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
             }
         }
         if (!userId) {
