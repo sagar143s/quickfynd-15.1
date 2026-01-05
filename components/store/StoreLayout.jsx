@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Loading from "../Loading"
 import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
@@ -17,10 +17,9 @@ const StoreLayout = ({ children }) => {
     const [isSeller, setIsSeller] = useState(false);
     const [sellerLoading, setSellerLoading] = useState(true);
     const [storeInfo, setStoreInfo] = useState(null);
-    const [lastFetchTime, setLastFetchTime] = useState(0);
-    const [tokenRefreshTimer, setTokenRefreshTimer] = useState(null);
+    const lastFetchTimeRef = useRef(Date.now());
 
-    const fetchIsSeller = async (forceRefresh = false) => {
+    const fetchIsSeller = useCallback(async (forceRefresh = false) => {
         if (!user) return;
         try {
             const token = await getToken(forceRefresh); // Force refresh token
@@ -36,14 +35,14 @@ const StoreLayout = ({ children }) => {
             console.log('[StoreLayout] /api/store/is-seller response:', data);
             setIsSeller(data.isSeller);
             setStoreInfo(data.storeInfo);
-            setLastFetchTime(Date.now());
+            lastFetchTimeRef.current = Date.now();
         } catch (error) {
             console.log('[StoreLayout] is-seller error:', error?.response?.data || error.message);
             setIsSeller(false);
         } finally {
             setSellerLoading(false);
         }
-    };
+    }, [user, getToken]);
 
     // Set up token refresh timer - refresh every 45 minutes to stay ahead of 1-hour expiration
     useEffect(() => {
@@ -53,10 +52,9 @@ const StoreLayout = ({ children }) => {
                 fetchIsSeller(true);
             }, 45 * 60 * 1000); // 45 minutes
 
-            setTokenRefreshTimer(timer);
             return () => clearInterval(timer);
         }
-    }, [user, isSeller]);
+    }, [user, isSeller, fetchIsSeller]);
 
     // Also set up a listener for when user becomes inactive/active
     useEffect(() => {
@@ -65,7 +63,7 @@ const StoreLayout = ({ children }) => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
                 // Page became visible - check if we need to refresh
-                const timeSinceLastFetch = Date.now() - lastFetchTime;
+                const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
                 console.log('[StoreLayout] Page became visible, time since last fetch:', timeSinceLastFetch);
                 
                 // If more than 10 minutes have passed, refresh the token
@@ -78,13 +76,13 @@ const StoreLayout = ({ children }) => {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [user, lastFetchTime]);
+    }, [user, fetchIsSeller]);
 
     useEffect(() => {
         if (!loading && user) {
             fetchIsSeller();
         }
-    }, [loading, user]);
+    }, [loading, user, fetchIsSeller]);
 
     return (loading || sellerLoading) ? (
         <Loading />
