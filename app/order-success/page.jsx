@@ -170,8 +170,16 @@ function OrderSuccessContent() {
             </div>
             <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-8 text-center'>
               <div className='text-yellow-800 font-semibold mb-2'>
-                Please sign in to view your order history and track details.<br />
-                Guests can track their order using the order ID only.
+                {!user ? (
+                  <>
+                    Please sign in to view your order history and track details.<br />
+                    Guests can track their order using the order ID only.
+                  </>
+                ) : (
+                  <>
+                    Your order has been confirmed. You can view your order history and track details in your account dashboard.
+                  </>
+                )}
               </div>
             </div>
             <div className='text-center mt-4'>

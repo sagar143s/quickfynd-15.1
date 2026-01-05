@@ -300,9 +300,10 @@ export default function CheckoutPage() {
             const orderId = responseData.orderId || responseData._id || responseData.id;
 
             if (verifyRes.ok && responseData.success && orderId) {
-              // Payment successful - clear cart and redirect to success page
-              dispatch(clearCart());
-              router.push(`/order-success?orderId=${orderId}`);
+              // Payment successful - navigate to success page immediately, clear cart after
+              router.replace(`/order-success?orderId=${orderId}`);
+              // Clear cart after short delay to allow navigation to complete first
+              setTimeout(() => dispatch(clearCart()), 100);
             } else {
               // Payment or order creation failed - redirect to failed page
               setPlacingOrder(false);
@@ -565,9 +566,10 @@ export default function CheckoutPage() {
       }
       const data = await res.json();
       if (data._id || data.id) {
-        // Order created successfully - clear cart and redirect
-        dispatch(clearCart());
-        router.push(`/order-success?orderId=${data._id || data.id}`);
+        // Order created successfully - navigate to success page immediately, clear cart after
+        router.replace(`/order-success?orderId=${data._id || data.id}`);
+        // Clear cart after short delay to allow navigation to complete first
+        setTimeout(() => dispatch(clearCart()), 100);
       } else {
         // No order ID returned - treat as failure
         setFormError("Order creation failed. Please try again.");
@@ -591,29 +593,6 @@ export default function CheckoutPage() {
     return (
       <div className="py-20 text-center">
         <div className="text-gray-600">Loading your cart...</div>
-      </div>
-    );
-  }
-  
-  if (!cartItems || Object.keys(cartItems).length === 0) {
-    // Auto-redirect to shop after 3 seconds if cart is empty
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        router.push('/shop');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }, [router]);
-
-    return (
-      <div className="py-20 text-center">
-        <div className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</div>
-        <div className="text-gray-600 mb-4">Redirecting to shop...</div>
-        <button 
-          onClick={() => router.push('/shop')}
-          className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold"
-        >
-          Continue Shopping Now
-        </button>
       </div>
     );
   }
