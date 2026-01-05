@@ -155,6 +155,11 @@ export default function CheckoutPage() {
     const product = products?.find((p) => String(p._id) === String(key));
     if (product) {
       console.log('Found product for key:', key, product.name);
+      // Ensure product has required fields
+      if (!product._id || !product.price) {
+        console.warn('Product missing required fields:', product);
+        continue;
+      }
       cartArray.push({ ...product, quantity: value });
     } else {
       console.log('No product found for key:', key);
@@ -163,7 +168,7 @@ export default function CheckoutPage() {
   
   console.log('Checkout - Final Cart Array:', cartArray);
 
-  const subtotal = cartArray.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = cartArray.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0);
   const total = subtotal + shipping;
 
   // Load shipping settings - refetch on page load and when products change
@@ -227,6 +232,20 @@ export default function CheckoutPage() {
     }
 
     try {
+      // Validate items have required fields
+      const itemsToSend = cartArray.map(({ _id, quantity }) => {
+        if (!_id || !quantity) {
+          throw new Error('Invalid cart item - missing ID or quantity');
+        }
+        return { id: _id, quantity };
+      });
+
+      if (itemsToSend.length === 0) {
+        setFormError("Your cart is empty or invalid. Please refresh and try again.");
+        setPlacingOrder(false);
+        return false;
+      }
+
       // Step 1: Create Razorpay order on backend
       const orderRes = await fetch("/api/razorpay/order", {
         method: "POST",
@@ -343,8 +362,22 @@ export default function CheckoutPage() {
       }
       // Prepare payload but DON'T create order yet - wait for payment verification
       try {
+        // Validate cart items
+        const itemsToSend = cartArray.map(({ _id, quantity }) => {
+          if (!_id || !quantity) {
+            throw new Error('Invalid cart item - missing ID or quantity');
+          }
+          return { id: _id, quantity };
+        });
+
+        if (itemsToSend.length === 0) {
+          setFormError("Your cart is empty or invalid. Please refresh and try again.");
+          setPlacingOrder(false);
+          return;
+        }
+
         let payload = {
-          items: cartArray.map(({ _id, quantity }) => ({ id: _id, quantity })),
+          items: itemsToSend,
           paymentMethod: 'CARD',
           shippingFee: shipping,
           paymentStatus: 'pending',
@@ -354,6 +387,23 @@ export default function CheckoutPage() {
           const addressId = form.addressId || (addressList[0] && addressList[0]._id);
           if (addressId) {
             payload.addressId = addressId;
+          } else if (form.street && form.city && form.state && form.country) {
+            // User is logged in but has no saved address - include address in payload
+            payload.addressData = {
+              name: form.name || user.displayName || '',
+              email: form.email || user.email || '',
+              phone: form.phone || '',
+              street: form.street,
+              city: form.city,
+              state: form.state,
+              country: form.country || 'UAE',
+              zip: form.zip || form.pincode || '000000',
+              district: form.district || ''
+            };
+          } else {
+            setFormError("Please select or enter a shipping address.");
+            setPlacingOrder(false);
+            return;
           }
         } else {
           if (!form.name || !form.email || !form.phone || !form.street || !form.city || !form.state || !form.country) {
@@ -396,16 +446,25 @@ export default function CheckoutPage() {
     
     setPlacingOrder(true);
     try {
-      let addressId = form.addressId;
-      // If logged in and no address selected, skip address creation for now
-      // Orders can work without addressId
-      
       // Validate payment method
       if (!form.payment) {
         setFormError("Please select a payment method.");
         setPlacingOrder(false);
         return;
       }
+
+      let addressId = form.addressId;
+      
+      // Check if user has an address (required for COD)
+      if (!addressId && (!addressList || addressList.length === 0)) {
+        // Check if form has address data
+        if (!form.street || !form.city || !form.state || !form.country) {
+          setFormError("Please select or enter a shipping address to place your order.");
+          setPlacingOrder(false);
+          return;
+        }
+      }
+      
       // Build order payload
       let payload;
       
@@ -414,8 +473,23 @@ export default function CheckoutPage() {
       
       if (user) {
         console.log('Building logged-in user payload...');
+        
+        // Validate cart items
+        const itemsToSend = cartArray.map(({ _id, quantity }) => {
+          if (!_id || !quantity) {
+            throw new Error('Invalid cart item - missing ID or quantity');
+          }
+          return { id: _id, quantity };
+        });
+
+        if (itemsToSend.length === 0) {
+          setFormError("Your cart is empty or invalid. Please refresh and try again.");
+          setPlacingOrder(false);
+          return;
+        }
+
         payload = {
-          items: cartArray.map(({ _id, quantity }) => ({ id: _id, quantity })),
+          items: itemsToSend,
           paymentMethod: form.payment === 'cod' ? 'COD' : form.payment.toUpperCase(),
           shippingFee: shipping,
         };
@@ -435,7 +509,23 @@ export default function CheckoutPage() {
             zip: form.zip || form.pincode || '000000',
             district: form.district || ''
           };
+        } else {
+          setFormError("Please select or enter a shipping address.");
+          setPlacingOrder(false);
+          return;
         }
+      } else {
+        // Should not reach here due to earlier check, but safety fallback
+        setFormError("Please sign in to place an order.");
+        setPlacingOrder(false);
+        return;
+      }
+      
+      // Validate payload before submitting
+      if (!payload || !payload.items || payload.items.length === 0) {
+        setFormError("Invalid order. Please check your cart.");
+        setPlacingOrder(false);
+        return;
       }
       
       console.log('Submitting order:', payload);
