@@ -30,6 +30,7 @@ export async function PUT(request, { params }) {
         }
         const userId = decodedToken.uid;
         const storeId = await authSeller(userId);
+        const storeIdStr = storeId?.toString();
         const { orderId } = await params;
 
         const { status, trackingId, trackingUrl, courier } = await request.json();
@@ -37,7 +38,7 @@ export async function PUT(request, { params }) {
         // Verify the order belongs to this store
         const existingOrder = await Order.findOne({
             _id: orderId,
-            storeId: storeId
+            storeId: storeIdStr
         })
         .populate({
             path: 'userId',
@@ -153,12 +154,13 @@ export async function DELETE(request, { params }) {
         }
         const userId = decodedToken.uid;
         const storeId = await authSeller(userId);
+        const storeIdStr = storeId?.toString();
         const { orderId } = await params;
 
         // Verify the order belongs to this store
         const existingOrder = await Order.findOne({
             _id: orderId,
-            storeId: storeId
+            storeId: storeIdStr
         }).lean();
 
         if (!existingOrder) {
