@@ -30,7 +30,11 @@ export async function PUT(request, { params }) {
         }
         const userId = decodedToken.uid;
         const storeId = await authSeller(userId);
-        const storeIdStr = storeId?.toString();
+        if (!storeId) {
+            console.error('[PUT order] User is not an approved seller');
+            return NextResponse.json({ error: "You are not authorized to update orders" }, { status: 403 });
+        }
+        const storeIdStr = storeId.toString();
         const { orderId } = await params;
 
         const { status, trackingId, trackingUrl, courier } = await request.json();
@@ -51,6 +55,7 @@ export async function PUT(request, { params }) {
         .lean();
 
         if (!existingOrder) {
+            console.error('[PUT order] Order not found or unauthorized. Looking for storeId:', storeIdStr, 'orderId:', orderId);
             return NextResponse.json({ error: 'Order not found or unauthorized' }, { status: 404 });
         }
 
@@ -154,7 +159,11 @@ export async function DELETE(request, { params }) {
         }
         const userId = decodedToken.uid;
         const storeId = await authSeller(userId);
-        const storeIdStr = storeId?.toString();
+        if (!storeId) {
+            console.error('[DELETE order] User is not an approved seller');
+            return NextResponse.json({ error: "You are not authorized to delete orders" }, { status: 403 });
+        }
+        const storeIdStr = storeId.toString();
         const { orderId } = await params;
 
         // Verify the order belongs to this store
@@ -164,6 +173,7 @@ export async function DELETE(request, { params }) {
         }).lean();
 
         if (!existingOrder) {
+            console.error('[DELETE order] Order not found or unauthorized. Looking for storeId:', storeIdStr, 'orderId:', orderId);
             return NextResponse.json({ error: 'Order not found or unauthorized' }, { status: 404 });
         }
 
