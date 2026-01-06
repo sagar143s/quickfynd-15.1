@@ -203,6 +203,13 @@ export default function CheckoutPage() {
     }
   }, [shippingSetting, cartArray, form.payment]);
 
+  // Auto-switch from COD to card if total exceeds 1999
+  useEffect(() => {
+    if (form.payment === 'cod' && total > 1999) {
+      setForm(prev => ({ ...prev, payment: '' }));
+    }
+  }, [total, form.payment]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'state') {
@@ -903,14 +910,15 @@ export default function CheckoutPage() {
                 </label>
 
                 {/* Cash on Delivery Option */}
-                <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-green-400 hover:bg-green-50/30 has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                <label className={`flex items-start gap-3 p-4 border-2 rounded-lg transition-all ${total > 1999 ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:border-green-400 hover:bg-green-50/30 has-[:checked]:border-green-500 has-[:checked]:bg-green-50'}`}>
                   <input
                     type="radio"
                     name="payment"
                     value="cod"
                     checked={form.payment === 'cod'}
                     onChange={handleChange}
-                    className="accent-green-600 w-5 h-5 mt-0.5"
+                    disabled={total > 1999}
+                    className="accent-green-600 w-5 h-5 mt-0.5 disabled:cursor-not-allowed"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -918,6 +926,9 @@ export default function CheckoutPage() {
                         <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
                       </svg>
                       <span className="font-semibold text-gray-900">Cash on Delivery</span>
+                      {total > 1999 && (
+                        <span className="text-xs text-red-600 font-medium">(Not available for orders above ₹1,999)</span>
+                      )}
                     </div>
                   </div>
                 </label>

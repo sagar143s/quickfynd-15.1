@@ -188,6 +188,13 @@ export async function POST(request) {
             }
             fullAmount += parseFloat(total.toFixed(2));
 
+            // Validate COD restriction for orders above 1999 INR
+            if (paymentMethod === 'cod' && total > 1999) {
+                return NextResponse.json({ 
+                    error: 'Cash on Delivery is not available for orders above ₹1,999. Please use card payment.' 
+                }, { status: 400 });
+            }
+
             // Prepare order data
             const orderData = {
                 storeId: storeId,
